@@ -8,7 +8,7 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>ChatGPT-like Chatbot</h1>
+        <h1>RAG Chatbot</h1>
       </header>
       <ChatBox />
     </div>

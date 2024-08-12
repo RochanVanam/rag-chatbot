@@ -7,8 +7,8 @@ from haystack.utils import Secret
 from haystack.document_stores.in_memory import InMemoryDocumentStore
 from haystack.components.retrievers import InMemoryBM25Retriever
 from haystack.components.generators import OpenAIGenerator
-from haystack.components.builders.answer_builder import AnswerBuilder
 from haystack.components.builders.prompt_builder import PromptBuilder
+from newsapi import NewsApiClient
 
 import openai
 import os
@@ -19,14 +19,28 @@ app = Flask(__name__)
 CORS(app)
 
 openai.api_key = os.getenv('OPENAI_API_KEY')
-api_key = os.getenv('OPENAI_API_KEY')
+openai_api_key = os.getenv('OPENAI_API_KEY')
 
-# Example docs (replace with anything)
-docs = [
-    Document(content="My name is Jean and I live in Paris."), 
-    Document(content="My name is Mark and I live in Berlin."), 
-    Document(content="My name is Giorgio and I live in Rome.")
-]
+# News API
+news_api_key = os.getenv('NEWS_API_KEY')
+newsapi = NewsApiClient(api_key=news_api_key)
+
+# get all articles
+TOPIC = 'crypto' # change this to anything
+all_articles = newsapi.get_everything(q=TOPIC,
+                                      language='en',
+                                      sort_by='publishedAt',)
+
+articles = all_articles['articles']
+
+docs = []
+for i, article in enumerate(articles):
+    if i >= 50:
+        break
+    content = article['content']
+    document = Document(content=content)
+    docs.append(document)
+    i += 1
 
 document_store = InMemoryDocumentStore()
 document_store.write_documents(docs)
@@ -43,7 +57,7 @@ Answer:
 
 retriever = InMemoryBM25Retriever(document_store=document_store)
 prompt_builder = PromptBuilder(template=prompt_template)
-llm = OpenAIGenerator(api_key=Secret.from_token(api_key))
+llm = OpenAIGenerator(api_key=Secret.from_token(openai_api_key))
 
 rag_pipeline = Pipeline()
 rag_pipeline.add_component("retriever", retriever)
